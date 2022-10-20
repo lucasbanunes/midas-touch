@@ -3,6 +3,24 @@ import numpy as np
 from midas_touch.typing import DatetimeLike, PeriodLike
 from midas_touch.constants import MIN_FREQ
 
+tables_dtypes = {
+    'transactions': {
+        'id': 'uint32',
+        'date': 'datetime64',
+        'name': 'str',
+        'value': 'float',
+        'status': 'category',
+        'payment': 'category',
+        'type': 'category'
+    },
+    'balances':{
+        'id': 'uint32',
+        'date': 'datetime64',
+        'name': 'category',
+        'value': 'float'
+    }
+}
+
 def series2list(series: pd.Series):
     return series.to_list()
 
