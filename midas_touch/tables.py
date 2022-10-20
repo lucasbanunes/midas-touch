@@ -1,6 +1,7 @@
+from typing import Tuple
 import pandas as pd
 import numpy as np
-from midas_touch.typing import DatetimeLike, PeriodLike
+from midas_touch.typing import TimestampLike, PeriodLike
 from midas_touch.constants import MIN_FREQ
 
 tables_dtypes = {
@@ -35,24 +36,29 @@ def get_cumulative_df(transactions: pd.DataFrame, applications: pd.DataFrame, ba
 
     return cum_transactions, cum_balances, cum_applications
 
-def get_cumulative_transactions(transactions:pd.DataFrame, period_start:DatetimeLike, period_end:DatetimeLike) -> pd.DataFrame:
-    period_start=pd.Timestamp(period_start)
-    period_end=pd.Timestamp(period_end)
-    closest_leq_ts = transactions.loc[transactions['date'] <= period_start, 'date'].max()
-    closest_geq_ts = transactions.loc[transactions['date'] >= period_end, 'date'].min()
-    if pd.isna(closest_geq_ts):
-        period_ends_after = True
-        closest_geq_ts = period_end
-    aux_transactions = transactions.loc[transactions['date'].between(closest_leq_ts, closest_geq_ts, inclusive='both')]
-    cum_transactions = aux_transactions.groupby('date').agg(
+def get_cumulative_transactions(transactions:pd.DataFrame) -> pd.DataFrame:
+    cum_transactions = transactions.groupby('date').agg(
         dict(value='sum', id=series2list, name=series2list, status=series2list, payment=series2list, type=series2list))
-    cum_transactions['cumulative'] = cum_transactions['value'].cumsum()
-    if period_ends_after:
-        cum_transactions.loc[period_end, 'value'] = cum_transactions['value'].iloc[-1]
+    cum_transactions['total'] = cum_transactions['value'].cumsum()
     return cum_transactions
 
-def get_cumulative_applications(applications:pd.DataFrame, period_start:DatetimeLike, period_end:DatetimeLike) -> pd.DataFrame:
+def get_cumulative_applications(applications:pd.DataFrame, period_start:TimestampLike, period_end:TimestampLike) -> pd.DataFrame:
     pass
 
-def get_cumulative_balances(balances:pd.DataFrame, period_start:DatetimeLike, period_end:DatetimeLike) -> pd.DataFrame:
+def get_cumulative_balances(balances:pd.DataFrame, period_start:TimestampLike, period_end:TimestampLike) -> pd.DataFrame:
     pass
+
+def get_closest_period(table:pd.DataFrame, period_start:TimestampLike, period_end:TimestampLike) -> Tuple[pd.Timestamp, pd.Timestamp]:
+    period_start=pd.Timestamp(period_start)
+    period_end=pd.Timestamp(period_end)
+    
+    closest_start = table.loc[table['date'] <= period_start, 'date'].max()
+    closest_end = table.loc[table['date'] >= period_end, 'date'].min()
+
+    if pd.isna(closest_start):     #The period starts before the first timestamp
+        closest_start = period_start
+
+    if pd.isna(closest_end):     #The period ends after the last timestamp
+        closest_end = period_end
+    
+    return closest_start, closest_end
